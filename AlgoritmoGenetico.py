@@ -3,6 +3,9 @@ from math import sqrt, sin
 import random
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib import cm
+from mpl_toolkits.mplot3d import Axes3D
 
 class AlgoritmoGenetico:
     #Codigifação Binaria - OK
@@ -10,12 +13,14 @@ class AlgoritmoGenetico:
     #Cruzamento de 2 ponto aleatorios - OK
     #Mutação por inversão binaria - OK (Eu acho)
     #1% de elitismo - OK (Eu acho)
-    def __init__(self, tamanho_populacao, funcaoBase, taxaMutacao = 0.03, taxaElitismo = 0.01):
+    def __init__(self, maximoGeracoes, tamanho_populacao, funcaoBase, taxaMutacao = 0.03, taxaElitismo = 0.01):
         self.tamanho_populacao:int = tamanho_populacao
         self.populacao:list = []
         self.geracao:int = 0
         self.melhor_solucao:dict = None
         self.melhor_solucao_geracao:int = 0
+        self.maximoGeracoes:int = maximoGeracoes
+        
         self.funcaoBase = funcaoBase
         self.taxaMutacao = taxaMutacao
         self.taxaElitismo = taxaElitismo
@@ -47,39 +52,47 @@ class AlgoritmoGenetico:
       
         print("População Original: ")
         self.printIndividuos(self.populacao)
-            
+    
+    def gerarGeracoes(self):
+        while(self.geracao < self.maximoGeracoes):
+            self.selecaoRoleta()
+        print(f"Melhor solução encontrada: {self.melhor_solucao} na geração {self.melhor_solucao_geracao}")   
+        
+        
     def selecaoRoleta(self): #Meotodo da roleta de seleção
-        somaFitness = sum([i["fitness"] for i in self.populacao])
-        for i in self.populacao:
-            i["porcentagem"] = i["fitness"]/somaFitness
+        while(self.maximoGeracoes > self.geracao):
+            somaFitness = sum([i["fitness"] for i in self.populacao])
+            for i in self.populacao:
+                i["porcentagem"] = i["fitness"]/somaFitness
 
-        #Agora selecionar para realizar o cruzamento
-        individuos = self.populacao
-        novaPopulacao = []
-        for i in range(self.tamanho_populacao):
-            isElitismo = random.random() < self.taxaElitismo
-            if isElitismo:
-                individuo = max(individuos, key=lambda x:x["fitness"])
-                novaPopulacao.append(individuo)
-                individuos.remove(individuo)
-            else:
-                if(len(individuos) == 0):
-                    break
-                individuo1 = random.choices(individuos, weights=[i["porcentagem"] for i in individuos])[0]
-                individuo2 = random.choices(individuos, weights=[i["porcentagem"] for i in individuos])[0]
-                while(individuo1 == individuo2):
+            #Agora selecionar para realizar o cruzamento
+            individuos = self.populacao
+            novaPopulacao = []
+            for i in range(self.tamanho_populacao):
+                isElitismo = random.random() < self.taxaElitismo
+                if isElitismo:
+                    individuo = max(individuos, key=lambda x:x["fitness"])
+                    novaPopulacao.append(individuo)
+                    individuos.remove(individuo)
+                else:
+                    if(len(individuos) == 0):
+                        break
+                    individuo1 = random.choices(individuos, weights=[i["porcentagem"] for i in individuos])[0]
                     individuo2 = random.choices(individuos, weights=[i["porcentagem"] for i in individuos])[0]
+                    while(individuo1 == individuo2):
+                        individuo2 = random.choices(individuos, weights=[i["porcentagem"] for i in individuos])[0]
+                        
+                    filho1, filho2 = self.cruzamento(individuo1, individuo2)
+                    novaPopulacao.append(self.mutacao(filho1))
+                    novaPopulacao.append(self.mutacao(filho2))
+                    individuos.remove(individuo1)
+                    individuos.remove(individuo2)
                     
-                filho1, filho2 = self.cruzamento(individuo1, individuo2)
-                novaPopulacao.append(self.mutacao(filho1))
-                novaPopulacao.append(self.mutacao(filho2))
-                individuos.remove(individuo1)
-                individuos.remove(individuo2)
-                
-        self.populacao = novaPopulacao
-        self.geracao += 1
-        print(f"População Após cruzamento da {self.geracao} geração: ")
-        self.printIndividuos(novaPopulacao)
+            self.populacao = novaPopulacao
+            self.geracao += 1
+            
+            print(f"População Após cruzamento da {self.geracao} geração: ")
+            self.printIndividuos(novaPopulacao)
         
         
     
@@ -91,7 +104,9 @@ class AlgoritmoGenetico:
         return individuo
         
     def inversaoBinaria(self, individuo):
+        print(individuo)
         individuo["x"] = individuo["x"][:random.randint(0, len(individuo["x"]))] + "1" + individuo["x"][random.randint(0, len(individuo["x"])):]
+        
         individuo["y"] = individuo["y"][:random.randint(0, len(individuo["y"]))] + "1" + individuo["y"][random.randint(0, len(individuo["y"])):]
         individuo["fitness"] = self.calcFitness(self.converteBinToFloat(individuo["x"]), self.converteBinToFloat(individuo["y"]))
         return individuo
@@ -113,6 +128,41 @@ class AlgoritmoGenetico:
         filho1["fitness"] = self.calcFitness(self.converteBinToFloat(filho1["x"]),self.converteBinToFloat(filho1["y"]))
         filho2["fitness"] = self.calcFitness(self.converteBinToFloat(filho2["x"]),self.converteBinToFloat(filho2["y"]))
         return filho1, filho2
+    
+    
+    def getListOfDict(self,lista:list):
+        numKeys = len(lista[0].keys())
+        listaFinal = []
+        for i in range(0,numKeys):
+            listaAux = []
+            for item in lista:
+                listaAux.append(item[list(item.keys())[i]])
+            listaFinal.append(listaAux)
+
+        return listaFinal
+    
+    def plotarGrafico(self):
+        populacaoFloat = []
+        for i in self.populacao:
+            if self.melhor_solucao == None or i["fitness"] > self.melhor_solucao["fitness"]:
+                self.melhor_solucao = i
+                self.melhor_solucao_geracao = self.geracao
+            populacaoFloat.append({"x":self.converteBinToFloat(i["x"]), "y":self.converteBinToFloat(i["y"]), "fitness":i["fitness"]})
+            
+        print("População: ", populacaoFloat)
+        
+            
+        plotIndList = self.getListOfDict(populacaoFloat)
+        plt.style.use('_mpl-gallery')
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+        X, Y = np.meshgrid(np.array(plotIndList[0]), np.array(plotIndList[1]))
+        calcFitness_vect = np.vectorize(self.calcFitness)
+        Z = calcFitness_vect(X, Y)
+        ax.plot_surface(X, Y, Z, cmap=cm.viridis, linewidth=0.5)
+        ax.set(xlabel="X", ylabel="Y", zlabel="Fitness")
+        fig.set_size_inches(10, 10)
+
+        plt.show()
     
     def printIndividuos(self, individuos:list):
         df = pd.DataFrame(individuos)
