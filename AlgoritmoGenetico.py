@@ -1,11 +1,8 @@
-
-from math import sqrt, sin
 import random
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
-from mpl_toolkits.mplot3d import Axes3D
 
 class AlgoritmoGenetico:
     #Codigifação Binaria - OK
@@ -20,7 +17,6 @@ class AlgoritmoGenetico:
         self.melhor_solucao:dict = None
         self.melhor_solucao_geracao:int = 0
         self.maximoGeracoes:int = maximoGeracoes
-        
         self.funcaoBase = funcaoBase
         self.taxaMutacao = taxaMutacao
         self.taxaElitismo = taxaElitismo
@@ -89,10 +85,10 @@ class AlgoritmoGenetico:
                     individuos.remove(individuo2)
                     
             self.populacao = novaPopulacao
-            self.geracao += 1
-            
+            self.geracao += 1            
             print(f"População Após cruzamento da {self.geracao} geração: ")
             self.printIndividuos(novaPopulacao)
+        self.plotarGrafico()
         
         
     
@@ -105,9 +101,22 @@ class AlgoritmoGenetico:
         
     def inversaoBinaria(self, individuo):
         print(individuo)
-        individuo["x"] = individuo["x"][:random.randint(0, len(individuo["x"]))] + "1" + individuo["x"][random.randint(0, len(individuo["x"])):]
+        signal,b = individuo["x"].split("b")
+        c = random.randint(0,len(b)-1)
+    
+        if b[c] == "0":
+            b = b[:c] + "1" + b[c+1:]
+        else:
+            b = b[:c] + "0" + b[c+1:]
+        individuo["x"] = signal + "b" + b
+        signal,b = individuo["y"].split("b")
+        c = random.randint(0,len(b)-1)
+        if b[c] == "0":
+            b = b[:c] + "1" + b[c+1:]
+        else:
+            b = b[:c] + "0" + b[c+1:]
         
-        individuo["y"] = individuo["y"][:random.randint(0, len(individuo["y"]))] + "1" + individuo["y"][random.randint(0, len(individuo["y"])):]
+        individuo["y"] = signal + "b" + b
         individuo["fitness"] = self.calcFitness(self.converteBinToFloat(individuo["x"]), self.converteBinToFloat(individuo["y"]))
         return individuo
      
