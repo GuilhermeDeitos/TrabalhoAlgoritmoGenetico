@@ -4,7 +4,6 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
-
 class AlgoritmoGenetico:
     def __init__(self, maximoGeracoes, tamanho_populacao, funcaoBase, taxaMutacao = 0.03, taxaElitismo = 0.01):
         self.tamanho_populacao:int = tamanho_populacao
@@ -24,7 +23,6 @@ class AlgoritmoGenetico:
         dec = int(dec, 2)
         result = inteiro + dec/(10**len(str(dec)))
         return result
-
     
     def converteFloatToBin(self, numero, casas=10):
         # Converte a parte inteira
@@ -86,13 +84,7 @@ class AlgoritmoGenetico:
         
         print("População Original: ")
         self.printIndividuos(self.populacao)
-
-    
-    def gerarGeracoes(self):
-        while(self.geracao < self.maximoGeracoes):
-            self.selecaoRoleta()
-        print(f"Melhor solução encontrada: {self.melhor_solucao} na geração {self.melhor_solucao_geracao}")   
-        
+       
         
     def selecaoRoleta(self):
         while self.maximoGeracoes > self.geracao:
@@ -104,6 +96,9 @@ class AlgoritmoGenetico:
                     if not individuos:
                         break
                     individuo = max(individuos, key=lambda x:x["fitness"])
+                    if self.melhor_solucao is None or individuo["fitness"] > self.melhor_solucao["fitness"]:
+                        self.melhor_solucao = individuo
+                        self.melhor_solucao_geracao = self.geracao
                     novaPopulacao.append(individuo)
                     individuos.remove(individuo)
                 else:
@@ -120,12 +115,16 @@ class AlgoritmoGenetico:
             somaFitnessNovaPopulacao = sum([i["fitness"] for i in novaPopulacao])
             for individuo in novaPopulacao:
                 individuo["porcentagem"] = individuo["fitness"] * 100 / (somaFitnessNovaPopulacao + 1e-9) # Calcula a porcentagem para cada novo individuo da população
+                if self.melhor_solucao is None or individuo["fitness"] > self.melhor_solucao["fitness"]:
+                    self.melhor_solucao = individuo
+                    self.melhor_solucao_geracao = self.geracao
             self.geracao += 1      
             self.printIndividuos(novaPopulacao)
             
         self.populacao = novaPopulacao       
         print(f"População Após cruzamento da {self.geracao} geração: ")
 
+        
 
     def mutacao(self, individuo): #Mutação por inversão binaria
         if random.random() < self.taxaMutacao:
@@ -133,8 +132,8 @@ class AlgoritmoGenetico:
             print("Mutação")
             return individuoMutado
         return individuo
+        
 
-    
     def inversaoBinaria(self, individuo):
         inteiro, dec = individuo["x"].split(".")
         inteiro, dec = self.auxInversao(list(inteiro)), self.auxInversao(list(dec))
@@ -147,12 +146,11 @@ class AlgoritmoGenetico:
         individuo["fitness"] = self.calcFitness(self.converteBinToFloat(individuo["x"]), self.converteBinToFloat(individuo["y"]))
         print("Cruzamento nulo ",individuo["fitness"] == 0)
         return individuo
-
-    
+     
     def auxInversao(self, listIndividuo):
-        return ['1' if i == '0' else '0' for i in listIndividuo]       
-
-    
+        return ['1' if i == '0' else '0' for i in listIndividuo]
+            
+                   
     def cruzamento(self, individuo1:dict, individuo2:dict): #Cruzamento por 2 pontos aleatorios
         filho1 = {"x": "", "y": ""}
         filho2 = {"x": "", "y": ""}
@@ -171,6 +169,14 @@ class AlgoritmoGenetico:
         filho2["fitness"] = self.calcFitness(self.converteBinToFloat(filho2["x"]),self.converteBinToFloat(filho2["y"]))
         return filho1, filho2
     
+
+    def exibirMelhorSolucao(self):
+            print("Melhor solução encontrada:")
+            print("X:", self.converteBinToFloat(self.melhor_solucao["x"]))
+            print("Y:", self.converteBinToFloat(self.melhor_solucao["y"]))
+            print("Fitness:", self.melhor_solucao["fitness"])
+            print("Geração:", self.melhor_solucao_geracao)
+
     
     def getListOfDict(self,lista:list):
         numKeys = len(lista[0].keys())
@@ -182,8 +188,8 @@ class AlgoritmoGenetico:
             listaFinal.append(listaAux)
 
         return listaFinal
-
     
+
     def plotarGrafico3d(self):
         populacaoFloat = []
         for i in self.populacao:
@@ -195,7 +201,6 @@ class AlgoritmoGenetico:
             
         print("População: ", populacaoFloat)
         
-         
         plotIndList = self.getListOfDict(populacaoFloat)
         plt.style.use('_mpl-gallery')
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
@@ -205,10 +210,9 @@ class AlgoritmoGenetico:
         ax.plot_surface(X, Y, Z, cmap=cm.viridis, linewidth=0.5)
         ax.set(xlabel="X", ylabel="Y", zlabel="Fitness")
         fig.set_size_inches(10, 10)
-
         plt.show()
 
-    
+
     def plotarGrafico2d(self):
         populacaoFloat = []
 
@@ -226,8 +230,7 @@ class AlgoritmoGenetico:
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.show()
-
-    
+        
     def printIndividuos(self, individuos:list):
         df = pd.DataFrame(individuos)
         print(df)
