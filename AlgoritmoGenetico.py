@@ -87,9 +87,12 @@ class AlgoritmoGenetico:
        
         
     def selecaoRoleta(self):
+        fitness_medio_por_geracao = []
         while self.maximoGeracoes > self.geracao:
             individuos = self.populacao.copy()
             novaPopulacao = []
+            fitness_total = 0
+            
             for i in range(self.tamanho_populacao):
                 isElitismo = random.random() < self.taxaElitismo
                 if isElitismo:
@@ -111,7 +114,11 @@ class AlgoritmoGenetico:
                         filho1, filho2 = self.cruzamento(individuo1, individuo2)
                         novaPopulacao.append(self.mutacao(filho1))
                         novaPopulacao.append(self.mutacao(filho2))
-
+            
+            # Calcula o valor médio do fitness
+            fitness_total = sum([individuo["fitness"] for individuo in novaPopulacao])
+            fitness_medio_por_geracao.append(fitness_total / len(novaPopulacao))
+            
             somaFitnessNovaPopulacao = sum([i["fitness"] for i in novaPopulacao])
             for individuo in novaPopulacao:
                 individuo["porcentagem"] = individuo["fitness"] * 100 / (somaFitnessNovaPopulacao + 1e-9) # Calcula a porcentagem para cada novo individuo da população
@@ -120,6 +127,10 @@ class AlgoritmoGenetico:
                     self.melhor_solucao_geracao = self.geracao
             self.geracao += 1      
             self.printIndividuos(novaPopulacao)
+            
+            self.plotarGrafico3d()
+            self.plotarGrafico2d()
+        self.plotarGraficoFitness(fitness_medio_por_geracao)
             
         self.populacao = novaPopulacao       
         print(f"População Após cruzamento da {self.geracao} geração: ")
@@ -210,6 +221,7 @@ class AlgoritmoGenetico:
         ax.plot_surface(X, Y, Z, cmap=cm.viridis, linewidth=0.5)
         ax.set(xlabel="X", ylabel="Y", zlabel="Fitness")
         fig.set_size_inches(10, 10)
+
         plt.show()
 
 
@@ -230,6 +242,15 @@ class AlgoritmoGenetico:
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.show()
+
+    
+    def plotarGraficoFitness(self, fitness_medio_por_geracao):
+        plt.plot(range(1, len(fitness_medio_por_geracao) + 1), fitness_medio_por_geracao)
+        plt.title('Valor Médio do Fitness por Geração')
+        plt.xlabel('Geração')
+        plt.ylabel('Fitness Médio')
+        plt.show()
+
         
     def printIndividuos(self, individuos:list):
         df = pd.DataFrame(individuos)
