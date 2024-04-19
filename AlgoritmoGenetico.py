@@ -4,12 +4,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import cm
 
+
 class AlgoritmoGenetico:
-    #Codigifação Binaria - OK
-    #Seleção por roleta  - Imperfeita
-    #Cruzamento de 2 ponto aleatorios - OK
-    #Mutação por inversão binaria - OK (Eu acho)
-    #1% de elitismo - OK (Eu acho)
     def __init__(self, maximoGeracoes, tamanho_populacao, funcaoBase, taxaMutacao = 0.03, taxaElitismo = 0.01):
         self.tamanho_populacao:int = tamanho_populacao
         self.populacao:list = []
@@ -28,6 +24,7 @@ class AlgoritmoGenetico:
         dec = int(dec, 2)
         result = inteiro + dec/(10**len(str(dec)))
         return result
+
     
     def converteFloatToBin(self, numero, casas=10):
         # Converte a parte inteira
@@ -69,17 +66,27 @@ class AlgoritmoGenetico:
     
     def gerarPopulacaoInicial(self):
         for i in range(self.tamanho_populacao):
-            #gerar um float aleatorio x
+            # Gerar um float aleatório x e y
             x = round(random.uniform(0, 15), 3)
             y = round(random.uniform(0, 10), 3)
+            
             individuo = {}
             individuo["x"] = self.converteFloatToBin(x)
             individuo["y"] = self.converteFloatToBin(y)
-            individuo["fitness"] = self.calcFitness(x,y) #linha a ser corrigida, pois interfere na seleção
+            individuo["fitness"] = self.calcFitness(x,y)
+            individuo["porcentagem"] = 0  # Inicializa a porcentagem da população
             self.populacao.append(individuo)
-      
+        
+        # Calcular a soma do fitness da população completa
+        somaFitness = sum([i["fitness"] for i in self.populacao])
+        
+        # Calcular as porcentagens para todos os indivíduos
+        for individuo in self.populacao:
+            individuo["porcentagem"] = individuo["fitness"] * 100 / (somaFitness + 1e-9) # Calcula a porcentagem inicial da população
+        
         print("População Original: ")
         self.printIndividuos(self.populacao)
+
     
     def gerarGeracoes(self):
         while(self.geracao < self.maximoGeracoes):
@@ -87,16 +94,8 @@ class AlgoritmoGenetico:
         print(f"Melhor solução encontrada: {self.melhor_solucao} na geração {self.melhor_solucao_geracao}")   
         
         
-    def selecaoRoleta(self): #Meotodo da roleta de seleção
-        while(self.maximoGeracoes > self.geracao):
-            somaFitness = sum([i["fitness"] for i in self.populacao])
-            for i in self.populacao:
-                print("Fitness",i["fitness"], somaFitness)
-                i["porcentagem"] = i["fitness"]/(somaFitness + 1e-9)  # Adiciona uma pequena constante para evitar divisão por zero
-            
-            print("Porcentagem: ",i)
-
-            #Agora selecionar para realizar o cruzamento
+    def selecaoRoleta(self):
+        while self.maximoGeracoes > self.geracao:
             individuos = self.populacao.copy()
             novaPopulacao = []
             for i in range(self.tamanho_populacao):
@@ -117,21 +116,25 @@ class AlgoritmoGenetico:
                         filho1, filho2 = self.cruzamento(individuo1, individuo2)
                         novaPopulacao.append(self.mutacao(filho1))
                         novaPopulacao.append(self.mutacao(filho2))
-                        
-            self.populacao = novaPopulacao
-            self.geracao += 1            
-            print(f"População Após cruzamento da {self.geracao} geração: ")
+
+            somaFitnessNovaPopulacao = sum([i["fitness"] for i in novaPopulacao])
+            for individuo in novaPopulacao:
+                individuo["porcentagem"] = individuo["fitness"] * 100 / (somaFitnessNovaPopulacao + 1e-9) # Calcula a porcentagem para cada novo individuo da população
+            self.geracao += 1      
             self.printIndividuos(novaPopulacao)
-        
-        
-    
+            
+        self.populacao = novaPopulacao       
+        print(f"População Após cruzamento da {self.geracao} geração: ")
+
+
     def mutacao(self, individuo): #Mutação por inversão binaria
         if random.random() < self.taxaMutacao:
             individuoMutado = self.inversaoBinaria(individuo)
             print("Mutação")
             return individuoMutado
         return individuo
-        
+
+    
     def inversaoBinaria(self, individuo):
         inteiro, dec = individuo["x"].split(".")
         inteiro, dec = self.auxInversao(list(inteiro)), self.auxInversao(list(dec))
@@ -144,12 +147,12 @@ class AlgoritmoGenetico:
         individuo["fitness"] = self.calcFitness(self.converteBinToFloat(individuo["x"]), self.converteBinToFloat(individuo["y"]))
         print("Cruzamento nulo ",individuo["fitness"] == 0)
         return individuo
-     
+
+    
     def auxInversao(self, listIndividuo):
-        return ['1' if i == '0' else '0' for i in listIndividuo]
-            
-                   
-        
+        return ['1' if i == '0' else '0' for i in listIndividuo]       
+
+    
     def cruzamento(self, individuo1:dict, individuo2:dict): #Cruzamento por 2 pontos aleatorios
         filho1 = {"x": "", "y": ""}
         filho2 = {"x": "", "y": ""}
@@ -179,6 +182,7 @@ class AlgoritmoGenetico:
             listaFinal.append(listaAux)
 
         return listaFinal
+
     
     def plotarGrafico3d(self):
         populacaoFloat = []
@@ -203,6 +207,8 @@ class AlgoritmoGenetico:
         fig.set_size_inches(10, 10)
 
         plt.show()
+
+    
     def plotarGrafico2d(self):
         populacaoFloat = []
 
@@ -220,9 +226,8 @@ class AlgoritmoGenetico:
         plt.xlabel('X')
         plt.ylabel('Y')
         plt.show()
-        
+
+    
     def printIndividuos(self, individuos:list):
         df = pd.DataFrame(individuos)
         print(df)
-
-        
