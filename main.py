@@ -7,6 +7,4 @@ algGen = AlgoritmoGenetico(tamanho_populacao=10, funcaoBase=funcaoBase, maximoGe
 
 algGen.gerarPopulacaoInicial()
 algGen.selecaoRoleta()
-algGen.plotarGrafico3d()
-algGen.plotarGrafico2d()
 algGen.exibirMelhorSolucao()
